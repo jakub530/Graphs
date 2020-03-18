@@ -36,18 +36,18 @@ public:
 
     Edge()
     {
-        source=-1;
+        source = -1;
         dest = -1;
         cost = -1;
-        bi =0;
+        bi = 0;
     }
 
-    Edge(int _source, int _dest, int _cost,bool _bi)
+    Edge(int _source, int _dest, int _cost, bool _bi)
     {
         source = _source;
-        dest   = _dest;
-        cost   = _cost;
-        bi     = _bi;
+        dest = _dest;
+        cost = _cost;
+        bi = _bi;
     }
 
     Edge reverse_edge()
@@ -149,16 +149,21 @@ bool cost_comp(const Edge& e1, const Edge& e2)
 
 void edge_transform(std::vector<std::vector<int>>& data)
 {
-    for (size_t i = 0;i<data.size();i++)
+    for (size_t i = 0; i < data.size(); i++)
     {
         data[i][0]--;
         data[i][1]--;
     }
 }
 
-bool dist_comp(const Node_Djikstra& n1, const Node_Djikstra& n2)
+//bool dist_comp(const Node_Djikstra& n1, const Node_Djikstra& n2)
+//{
+//    return n1.dist > n2.dist;
+//}
+
+bool dist_comp(const ind_cost_pair& n1, const ind_cost_pair& n2)
 {
-    return n1.dist > n2.dist;
+    return n1.dist < n2.dist;
 }
 
 std::vector<std::vector<int>> gather_data(std::vector<int> source, std::vector<int> dest, std::vector<int> cost = {})
@@ -204,9 +209,9 @@ public:
                     Groups.resize(size);
                 }
                 Group new_group(i, i);
-                Groups[i]=(new_group);
+                Groups[i] = (new_group);
                 Nodes[i].group = index;
-                
+
             }
             Nodes[i].index = index;
             index++;
@@ -231,7 +236,7 @@ public:
 
     void populate_graph(int size, std::vector<std::vector<int>> input_vector, bool directional = true, int from = 0)
     {
-        create_nodes(size,false);
+        create_nodes(size, false);
         int cost = 0;
         for (auto const& row : input_vector)
         {
@@ -244,7 +249,7 @@ public:
         }
     }
 
-    Group group_connected(int start_index, std::vector<bool>&grouped, int group_index)
+    Group group_connected(int start_index, std::vector<bool>& grouped, int group_index)
     {
         Group new_group(start_index, group_index);
         grouped[start_index] = true;
@@ -339,7 +344,7 @@ public:
     {
         Graph min_graph;
         this->sort_edges();
-        min_graph.create_nodes(Nodes.size(),true);
+        min_graph.create_nodes(Nodes.size(), true);
         for (auto edge : Edges)
         {
             if (min_graph.Nodes[edge.source].group != min_graph.Nodes[edge.dest].group)
@@ -359,8 +364,8 @@ public:
         return min_graph;
     }
 
-     
-    int find_smallest_cost(const std::vector<Node_Djikstra> &d_nodes)
+
+    int find_smallest_cost(const std::vector<Node_Djikstra>& d_nodes)
     {
         double smallest = std::numeric_limits<int>::max();
         int min_index = 0;
@@ -378,28 +383,12 @@ public:
         return min_index;
     }
 
-    void insert_at_proper_index(std::vector<ind_cost_pair> &p_nodes,ind_cost_pair p_node)
+    void insert_at_proper_index(std::vector<ind_cost_pair>& p_nodes, ind_cost_pair p_node)
     {
         bool inserted = false;
-
-
-        for (int i = p_nodes.size() - 1; i >= 0; i--)
-        {
-            if (p_node.ind == p_nodes[i].ind)
-            {
-                p_nodes.erase(p_nodes.begin() + i);
-            }
-            else if (p_node.dist <= p_nodes[i].dist)
-            {
-                inserted = true;
-                p_nodes.insert(p_nodes.begin()+i+1, p_node);
-                break;
-            }
-        }
-        if (!inserted)
-        {
-            p_nodes.insert(p_nodes.begin(), p_node);
-        }
+        std::vector<ind_cost_pair>::iterator low, up;
+        low = std::lower_bound(p_nodes.begin(), p_nodes.end(), p_node, dist_comp);
+        p_nodes.insert(low, p_node);
     }
 
     double dijkstra(int source, int dest)
@@ -410,11 +399,11 @@ public:
         {
             d_nodes[i] = Node_Djikstra(Nodes[i]);
         }
-        ind_cost_pair p_node(0,source);
+        ind_cost_pair p_node(0, source);
         p_nodes.push_back(p_node);
 
         d_nodes[source].dist = 0;
-        
+
         Node_Djikstra tmp_node;
         int min_node = source;
         int inactive_nodes = 0;
@@ -422,41 +411,42 @@ public:
 
         while (true)
         {
-            inactive_nodes++;
-            ind_cost_pair last = p_nodes.back();
-            p_nodes.pop_back();
+            ind_cost_pair last = p_nodes[0];
+            p_nodes.erase(p_nodes.begin());
             int min_node = last.ind;
-            d_nodes[min_node].active = false;
-            Node_Djikstra u_node = d_nodes[min_node];
-            
-
-            if (u_node.index == dest)
+            if (d_nodes[min_node].active == true)
             {
-                tmp_node = u_node;
-                flag = true;
-                break;
-            }
+                d_nodes[min_node].active = false;
+                Node_Djikstra u_node = d_nodes[min_node];
 
-            for (auto connection : u_node.connections)
-            {
-                double alt = std::max(u_node.dist,double(connection.cost));
-                if (alt < d_nodes[connection.dest].dist)
+
+                if (u_node.index == dest)
                 {
-                    ind_cost_pair p_node(alt, connection.dest);
-                    insert_at_proper_index(p_nodes, p_node);
-                    d_nodes[connection.dest].dist = alt;
-                    d_nodes[connection.dest].prev = u_node.index;
-
+                    tmp_node = u_node;
+                    flag = true;
+                    break;
                 }
 
-            }
+                for (auto connection : u_node.connections)
+                {
+                    double alt = std::max(u_node.dist, double(connection.cost));
+                    if (alt < d_nodes[connection.dest].dist)
+                    {
+                        ind_cost_pair p_node(alt, connection.dest);
+                        insert_at_proper_index(p_nodes, p_node);
+                        d_nodes[connection.dest].dist = alt;
+                        d_nodes[connection.dest].prev = u_node.index;
 
-            if (p_nodes.size()==0)
+                    }
+
+                }
+            }
+            if (p_nodes.size() == 0)
             {
                 break;
             }
         }
- 
+
         if (flag)
         {
             return tmp_node.dist;
