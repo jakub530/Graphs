@@ -8,6 +8,23 @@
 
 bool log_it = true;
 
+struct ind_cost_pair
+{
+public:
+    int dist;
+    int ind;
+    ind_cost_pair(int _dist, int _ind)
+    {
+        dist = _dist;
+        ind = _ind;
+    }
+    ind_cost_pair()
+    {
+
+    }
+
+
+};
 
 class Edge
 {
@@ -361,17 +378,43 @@ public:
         return min_index;
     }
 
+    void insert_at_proper_index(std::vector<ind_cost_pair> &p_nodes,ind_cost_pair p_node)
+    {
+        bool inserted = false;
+
+
+        for (int i = p_nodes.size() - 1; i >= 0; i--)
+        {
+            if (p_node.ind == p_nodes[i].ind)
+            {
+                p_nodes.erase(p_nodes.begin() + i);
+            }
+            else if (p_node.dist <= p_nodes[i].dist)
+            {
+                inserted = true;
+                p_nodes.insert(p_nodes.begin()+i+1, p_node);
+                break;
+            }
+        }
+        if (!inserted)
+        {
+            p_nodes.insert(p_nodes.begin(), p_node);
+        }
+    }
+
     double dijkstra(int source, int dest)
     {
         std::vector<Node_Djikstra> d_nodes(Nodes.size());
-        std::vector<int> p_nodes;
+        std::vector<ind_cost_pair> p_nodes;
         for (size_t i = 0; i < d_nodes.size(); i++)
         {
             d_nodes[i] = Node_Djikstra(Nodes[i]);
         }
-        int p_node_ind = 0;
+        ind_cost_pair p_node(0,source);
+        p_nodes.push_back(p_node);
+
         d_nodes[source].dist = 0;
-        p_nodes.push_back(source);
+        
         Node_Djikstra tmp_node;
         int min_node = source;
         int inactive_nodes = 0;
@@ -379,8 +422,11 @@ public:
 
         while (true)
         {
-            d_nodes[min_node].active = false;
             inactive_nodes++;
+            ind_cost_pair last = p_nodes.back();
+            p_nodes.pop_back();
+            int min_node = last.ind;
+            d_nodes[min_node].active = false;
             Node_Djikstra u_node = d_nodes[min_node];
             
 
@@ -396,15 +442,16 @@ public:
                 double alt = std::max(u_node.dist,double(connection.cost));
                 if (alt < d_nodes[connection.dest].dist)
                 {
+                    ind_cost_pair p_node(alt, connection.dest);
+                    insert_at_proper_index(p_nodes, p_node);
                     d_nodes[connection.dest].dist = alt;
                     d_nodes[connection.dest].prev = u_node.index;
 
                 }
 
             }
-            min_node = find_smallest_cost(d_nodes);
 
-            if (inactive_nodes == Nodes.size())
+            if (p_nodes.size()==0)
             {
                 break;
             }
@@ -426,19 +473,19 @@ public:
 
 int main()
 {
-    std::vector<std::vector<int>> vect{ { 0, 1 ,3 },
-                                        { 1, 2 , 4}, 
-                                        { 2, 3 , 6}, 
-                                        { 1, 3 , 4}, 
-                                        { 2, 5 , 2}, 
-                                        { 2, 0 , 1} };
+    std::vector<std::vector<int>> vect{ { 0, 1 ,30 },
+                                        { 1, 2 ,50}, 
+                                        { 2, 3 ,70}, 
+                                        { 3, 4 , 90}, 
+                                        { 0, 2 , 70}, 
+                                        { 2,4 , 85} };
     Graph New_Graph;
     New_Graph.populate_graph(6,vect);
     New_Graph.print_edges();
     Graph min_graph = New_Graph.find_min_graph();
     min_graph.print_edges();
     std::cout << "Edge cost sum is " << min_graph.sum_cost << "\n";
-    std::cout << New_Graph.dijkstra(0, 3) << "\n";
+    std::cout << New_Graph.dijkstra(0, 4) << "\n";
 
     std::vector<int> lol;
     
