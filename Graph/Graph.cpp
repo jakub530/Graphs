@@ -1,6 +1,3 @@
-// Graph.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -20,6 +17,8 @@ public:
     }
     ind_cost_pair()
     {
+        dist = 0;
+        ind = 0;
 
     }
 
@@ -156,14 +155,9 @@ void edge_transform(std::vector<std::vector<int>>& data)
     }
 }
 
-//bool dist_comp(const Node_Djikstra& n1, const Node_Djikstra& n2)
-//{
-//    return n1.dist > n2.dist;
-//}
-
 bool dist_comp(const ind_cost_pair& n1, const ind_cost_pair& n2)
 {
-    return n1.dist < n2.dist;
+    return n1.dist > n2.dist;
 }
 
 std::vector<std::vector<int>> gather_data(std::vector<int> source, std::vector<int> dest, std::vector<int> cost = {})
@@ -385,45 +379,39 @@ public:
 
     void insert_at_proper_index(std::vector<ind_cost_pair>& p_nodes, ind_cost_pair p_node)
     {
-        bool inserted = false;
         std::vector<ind_cost_pair>::iterator low, up;
-        low = std::lower_bound(p_nodes.begin(), p_nodes.end(), p_node, dist_comp);
-        p_nodes.insert(low, p_node);
+        up = std::upper_bound(p_nodes.begin(), p_nodes.end(), p_node, dist_comp);
+        p_nodes.insert(up, p_node);
     }
 
     double dijkstra(int source, int dest)
     {
         std::vector<Node_Djikstra> d_nodes(Nodes.size());
-        std::vector<ind_cost_pair> p_nodes;
+        std::vector<ind_cost_pair> queued_nodes;
         for (size_t i = 0; i < d_nodes.size(); i++)
         {
             d_nodes[i] = Node_Djikstra(Nodes[i]);
         }
-        ind_cost_pair p_node(0, source);
-        p_nodes.push_back(p_node);
+        ind_cost_pair source_node(0, source);
+        queued_nodes.push_back(source_node);
 
         d_nodes[source].dist = 0;
 
-        Node_Djikstra tmp_node;
-        int min_node = source;
-        int inactive_nodes = 0;
-        bool flag = false;
+        double dist = std::numeric_limits<int>::max();
 
         while (true)
         {
-            ind_cost_pair last = p_nodes[0];
-            p_nodes.erase(p_nodes.begin());
-            int min_node = last.ind;
-            if (d_nodes[min_node].active == true)
-            {
-                d_nodes[min_node].active = false;
-                Node_Djikstra u_node = d_nodes[min_node];
+            ind_cost_pair last = queued_nodes.back();
+            queued_nodes.pop_back();
 
+            if (d_nodes[last.ind].active == true)
+            {
+                d_nodes[last.ind].active = false;
+                Node_Djikstra u_node = d_nodes[last.ind];
 
                 if (u_node.index == dest)
                 {
-                    tmp_node = u_node;
-                    flag = true;
+                    dist = u_node.dist;
                     break;
                 }
 
@@ -433,33 +421,21 @@ public:
                     if (alt < d_nodes[connection.dest].dist)
                     {
                         ind_cost_pair p_node(alt, connection.dest);
-                        insert_at_proper_index(p_nodes, p_node);
+                        insert_at_proper_index(queued_nodes, p_node);
                         d_nodes[connection.dest].dist = alt;
                         d_nodes[connection.dest].prev = u_node.index;
-
                     }
-
                 }
             }
-            if (p_nodes.size() == 0)
+            if (queued_nodes.size() == 0)
             {
                 break;
             }
         }
-
-        if (flag)
-        {
-            return tmp_node.dist;
-        }
-        else
-        {
-            return -1;
-        }
-
+        return dist;
     }
-
-
 };
+
 
 int main()
 {
